@@ -1,0 +1,45 @@
+jobs:
+  - name: get_latest_image_list
+    type: runSh
+    steps:
+      # This will automatically set the environment variables needed by rancher-compose
+      - IN: pull_release_trigger
+      - IN: gcloud_config
+      - TASK:
+        - script: |
+            gcloud container images list --format="json" --repository=gcr.io/google-containers |jq .[].name |sed 's/"//g'> repolist
+            cat repolist | while read repo
+            do \
+            version=$(gcloud container images list-tags --format 'get(tags)' --limit=1 $repo) 
+            echo "$repo" "$version" >> imagelist
+            echo "got image $repo, version tag $version"
+            done
+            shipctl copy_file_to_state "imagelist"
+
+  - name: push_new_image
+    type: runSh
+    steps:
+      - IN: qingcloud_hub_config
+      - IN: get_latest_image_list
+      - TASK:
+        - script: |
+            imageliststate=$(shipctl get_resource_state get_latest_image_list)
+            shipctl copy_file_from_prev_state imagelist oldimagelist
+            cp $imageliststate/imagelist newimagelist
+            comm -3 -1 <( sort oldimagelist) <(sort newimagelist) > updatelist
+            cat updatelist | while read item 
+            do \
+            repo=$(echo $item|awk '{ print $1}')
+            taglist=$(echo $item| awk '{ print $2}')
+            IFS=';' read -a tags <<< $taglist
+            for tag in ${tags[@]}
+            do \
+              project=${repo#gcr.io/}
+              echo "pushed $repo:$tag to dockerhub.qingcloud.com/$project:$tag"
+              shipctl retry docker pull $repo:$tag
+              docker tag $repo:$tag dockerhub.qingcloud.com/$project:$tag
+              shipctl retry docker push dockerhub.qingcloud.com/$project:$tag
+            done 
+            done
+            mv newimagelist imagelist
+            shipctl copy_file_to_state imagelist 

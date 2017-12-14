@@ -1,0 +1,13 @@
+resources:
+  - name: pull_release_trigger
+    type: time
+    seed:           
+      interval: "0 0 * * *"
+
+  - name: gcloud_config
+    type: cliConfig
+    integration: kunicornbot
+
+  - name: qingcloud_hub_config
+    type: cliConfig
+    integration: qingcloudhub
