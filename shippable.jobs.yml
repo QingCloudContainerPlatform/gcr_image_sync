@@ -43,3 +43,12 @@ jobs:
             done
             mv newimagelist imagelist
             shipctl copy_file_to_state imagelist 
+    on_success:
+      - script: echo "Synced $VERSION to bucket"
+      - NOTIFY: slack
+    on_failure:
+      - script: echo "Failed to get latest build $VERSION"
+      - NOTIFY: slack
+    on_cancel:
+      - script: echo "Get latest build $VERSION canceled"
+      - NOTIFY: slack

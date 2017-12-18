@@ -11,3 +11,10 @@ resources:
   - name: qingcloud_hub_config
     type: cliConfig
     integration: qingcloudhub
+
+  - name: slack
+    type: notification
+    integration: container-platform
+    pointer: 
+      recipients:
+        - "#container-platform"
