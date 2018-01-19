@@ -28,7 +28,7 @@ jobs:
             imageliststate=$(shipctl get_resource_state get_latest_image_list)
             shipctl copy_file_from_prev_state imagelist oldimagelist
             cp $imageliststate/imagelist newimagelist
-            comm -3 -1 <( sort oldimagelist) <(sort newimagelist) > updatelist
+            comm -3 -1 <( sort -r oldimagelist) <(sort -r newimagelist) > updatelist
             cat updatelist | while read item 
             do \
             repo=$(echo $item|awk '{ print $1}')
