@@ -7,8 +7,8 @@ jobs:
       - IN: gcloud_config
       - TASK:
         - script: |
-            gcloud container images list --format="json" --repository=gcr.io/google-containers |jq .[].name |sed 's/"//g'> repolist
             gcloud container images list --format="json" --repository=gcr.io/kubernetes-helm |jq .[].name |sed 's/"//g'>> repolist
+            gcloud container images list --format="json" --repository=gcr.io/google-containers |jq .[].name |sed 's/"//g'> repolist
 
             cat repolist | while read repo
             do \
