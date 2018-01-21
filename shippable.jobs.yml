@@ -29,7 +29,7 @@ jobs:
             shipctl copy_file_from_prev_state imagelist oldimagelist
             touch oldimagelist
             cp $imageliststate/imagelist newimagelist
-            comm -3 -1 <( sort -r oldimagelist) <(sort -r newimagelist) > updatelist
+            comm -3 -1 <( sort oldimagelist) <(sort newimagelist) > updatelist
             cat updatelist | while read item 
             do \
             repo=$(echo $item|awk '{ print $1}')
@@ -39,9 +39,7 @@ jobs:
             do \
               project=${repo#gcr.io/}
               echo "pushed $repo:$tag to dockerhub.qingcloud.com/$project:$tag"
-              shipctl retry docker pull $repo:$tag
-              docker tag $repo:$tag dockerhub.qingcloud.com/$project:$tag
-              shipctl retry docker push dockerhub.qingcloud.com/$project:$tag
+              (shipctl retry docker pull $repo:$tag && docker tag $repo:$tag dockerhub.qingcloud.com/$project:$tag && shipctl retry docker push dockerhub.qingcloud.com/$project:$tag)|| true
             done 
             done
             mv newimagelist imagelist
