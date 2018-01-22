@@ -36,6 +36,7 @@ jobs:
             repo=$(echo $item|awk '{ print $1}')
             tag=$(echo $item| awk '{ print $2}')
             project=${repo#gcr.io/}
+            project=${project//-/_}
             (docker pull $repo:$tag && docker tag $repo:$tag dockerhub.qingcloud.com/$project:$tag &&  docker push dockerhub.qingcloud.com/$project:$tag && echo "pushed $repo:$tag to dockerhub.qingcloud.com/$project:$tag")|| true
             done
     on_success:
