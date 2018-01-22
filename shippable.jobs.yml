@@ -13,8 +13,12 @@ jobs:
             cat repolist | while read repo
             do \
             version=$(gcloud container images list-tags --format 'get(tags)' --limit=1 $repo) 
-            echo "$repo" "$version" >> imagelist
-            echo "got image $repo, version tag $version"
+            IFS=';' read -a tags <<< $version
+            for tag in ${tags[@]}
+            do \
+              echo "$repo" "$tag" >> imagelist
+              echo "$repo" "$tag"
+            done 
             done
             shipctl copy_file_to_state "imagelist"
 
@@ -26,24 +30,14 @@ jobs:
       - TASK:
         - script: |
             imageliststate=$(shipctl get_resource_state get_latest_image_list)
-            shipctl copy_file_from_prev_state imagelist oldimagelist
-            touch oldimagelist
             cp $imageliststate/imagelist newimagelist
-            comm -3 -1 <( sort oldimagelist) <(sort newimagelist) > updatelist
-            cat updatelist | while read item 
+            cat newimagelist | while read item 
             do \
             repo=$(echo $item|awk '{ print $1}')
-            taglist=$(echo $item| awk '{ print $2}')
-            IFS=';' read -a tags <<< $taglist
-            for tag in ${tags[@]}
-            do \
-              project=${repo#gcr.io/}
-              echo "pushed $repo:$tag to dockerhub.qingcloud.com/$project:$tag"
-              (docker pull $repo:$tag && docker tag $repo:$tag dockerhub.qingcloud.com/$project:$tag &&  docker push dockerhub.qingcloud.com/$project:$tag)|| true
-            done 
+            tag=$(echo $item| awk '{ print $2}')
+            project=${repo#gcr.io/}
+            (docker pull $repo:$tag && docker tag $repo:$tag dockerhub.qingcloud.com/$project:$tag &&  docker push dockerhub.qingcloud.com/$project:$tag && echo "pushed $repo:$tag to dockerhub.qingcloud.com/$project:$tag")|| true
             done
-            mv newimagelist imagelist
-            shipctl copy_file_to_state imagelist 
     on_success:
       - script: echo "Synced $VERSION to bucket"
       - NOTIFY: slack
